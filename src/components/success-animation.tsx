@@ -13,7 +13,7 @@ export const SuccessAnimation = ({ className }: { className?: string }) => {
           strokeWidth="2"
         />
         <path
-          className="animate-checkmark stroke-current text-primary"
+          className="animate-checkmark stroke-current text-accent"
           fill="none"
           strokeWidth="3"
           strokeLinecap="round"

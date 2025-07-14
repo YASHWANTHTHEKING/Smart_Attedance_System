@@ -27,7 +27,7 @@ export function Header() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-6 w-6 text-primary"
+              className="h-6 w-6 text-accent"
             >
               <path d="M12 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" />
               <path d="M18.5 18.5c-3-2-6-3-6-3" />
@@ -44,8 +44,8 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center text-sm font-medium transition-colors hover:text-primary",
-                  pathname === item.href ? "text-primary" : "text-muted-foreground"
+                  "flex items-center text-sm font-medium transition-colors hover:text-accent",
+                  pathname === item.href ? "text-accent" : "text-muted-foreground"
                 )}
               >
                 <item.icon className="mr-2 h-4 w-4" />
@@ -61,8 +61,8 @@ export function Header() {
               key={`${item.href}-mobile`}
               href={item.href}
               className={cn(
-                "flex items-center justify-center rounded-md p-2 transition-colors hover:bg-accent hover:text-accent-foreground",
-                pathname === item.href ? "text-primary bg-accent" : "text-muted-foreground"
+                "flex items-center justify-center rounded-md p-2 transition-colors hover:bg-secondary hover:text-accent",
+                pathname === item.href ? "text-accent bg-secondary" : "text-muted-foreground"
               )}
             >
               <item.icon className="h-5 w-5" />
