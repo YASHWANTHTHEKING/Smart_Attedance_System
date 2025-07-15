@@ -163,7 +163,7 @@ export default function HomePage() {
           </CardContent>
           <CardFooter>
                 <Button type="button" onClick={handleAttendance} className="w-full" size="lg" disabled={isProcessing || !!recognitionResult}>
-                  {isProcessing ? <Loader2 className="animate-spin" /> : <Users />}
+                  {isProcessing ? <Loader2 className="animate-spin" /> : <UserCheck />}
                   {isProcessing ? 'Processing...' : 'Mark My Attendance'}
               </Button>
           </CardFooter>
