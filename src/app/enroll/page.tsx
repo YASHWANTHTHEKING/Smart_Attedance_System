@@ -18,7 +18,7 @@ export default function EnrollPage() {
   const webcamRef = useRef<WebcamFeedRef>(null);
   const [name, setName] = useState('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const { enrolledUsers, enrollUser, removeUser, isReady } = useAppContext();
+  const { enrolledUsers, enrollUser, removeUser, removeAllUsers, isReady } = useAppContext();
   const { toast } = useToast();
 
   const handleCapture = () => {
@@ -51,6 +51,11 @@ export default function EnrollPage() {
   const handleRemove = (userId: string, userName: string) => {
     removeUser(userId);
     toast({ title: 'User Removed', description: `${userName} has been removed from the system.`});
+  };
+
+  const handleRemoveAll = () => {
+    removeAllUsers();
+    toast({ title: 'All Users Removed', description: `All enrolled users have been removed from the system.`});
   };
 
   if (!isReady) {
@@ -133,8 +138,34 @@ export default function EnrollPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Enrolled Users</CardTitle>
-            <CardDescription>A list of all users currently in the system.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Enrolled Users</CardTitle>
+                <CardDescription>A list of all users currently in the system.</CardDescription>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={enrolledUsers.length === 0}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Remove All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete all
+                      enrolled users from the system.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRemoveAll} className="bg-destructive hover:bg-destructive/90">
+                      Yes, remove all users
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-72 border rounded-md">

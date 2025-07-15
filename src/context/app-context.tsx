@@ -19,6 +19,7 @@ interface AppContextType {
   attendanceLog: AttendanceRecord[];
   enrollUser: (name: string, imageSrc: string) => void;
   removeUser: (userId: string) => void;
+  removeAllUsers: () => void;
   markAttendance: (userId: string) => string | null;
   isReady: boolean;
 }
@@ -72,6 +73,10 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const removeUser = (userId: string) => {
     setEnrolledUsers(prev => prev.filter(user => user.id !== userId));
   };
+  
+  const removeAllUsers = () => {
+    setEnrolledUsers([]);
+  };
 
   const markAttendance = (userId: string): string | null => {
     const user = enrolledUsers.find(u => u.id === userId);
@@ -98,7 +103,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AppContext.Provider value={{ enrolledUsers, attendanceLog, enrollUser, removeUser, markAttendance, isReady }}>
+    <AppContext.Provider value={{ enrolledUsers, attendanceLog, enrollUser, removeUser, removeAllUsers, markAttendance, isReady }}>
       {children}
     </AppContext.Provider>
   );
