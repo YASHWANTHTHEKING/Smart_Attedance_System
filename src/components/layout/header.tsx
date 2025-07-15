@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Camera, UserPlus, ClipboardCheck } from "lucide-react";
+import { Camera, UserPlus, ClipboardCheck, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Kiosk", icon: Camera },
   { href: "/enroll", label: "Enroll", icon: UserPlus },
   { href: "/manual-checkin", label: "Manual Check-in", icon: ClipboardCheck },
+  { href: "/daily-log", label: "Daily Log", icon: History },
 ];
 
 export function Header() {
