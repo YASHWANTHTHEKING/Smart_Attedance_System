@@ -1,51 +1,81 @@
 "use client";
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { WebcamFeed, WebcamFeedRef } from '@/components/webcam-feed';
-import { useAppContext } from '@/context/app-context';
+import { useAppContext, EnrolledUser } from '@/context/app-context';
 import { useToast } from '@/hooks/use-toast';
 import { SuccessAnimation } from '@/components/success-animation';
-import { UserCheck, Frown } from 'lucide-react';
+import { UserCheck, Frown, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { recognizeFace } from '@/ai/flows/recognize-face-flow';
+import type { RecognizeFaceInput, RecognizeFaceOutput } from '@/ai/schemas/face-recognition-schemas';
 
 export default function HomePage() {
   const webcamRef = useRef<WebcamFeedRef>(null);
   const { enrolledUsers, markAttendance, isReady } = useAppContext();
   const { toast } = useToast();
   const [recognitionResult, setRecognitionResult] = useState<{status: 'success' | 'fail', message: string} | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleAttendance = () => {
+  const handleAttendance = useCallback(async () => {
+    if (isProcessing) return;
+    
     setRecognitionResult(null);
+    setIsProcessing(true);
 
     const imageSrc = webcamRef.current?.capture();
     if (!imageSrc) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not capture image from webcam.' });
+      setIsProcessing(false);
       return;
     }
     
     if (enrolledUsers.length === 0) {
         toast({ variant: 'destructive', title: 'No Users Enrolled', description: 'Please enroll users before marking attendance.' });
+        setIsProcessing(false);
         return;
     }
     
-    toast({ title: 'Processing...', description: 'Recognizing face...' });
+    toast({ title: 'Processing...', description: 'Recognizing face, this may take a moment.' });
 
-    setTimeout(() => {
-        const randomUser = enrolledUsers[Math.floor(Math.random() * enrolledUsers.length)];
-        const resultMessage = markAttendance(randomUser.id);
-        
-        if (resultMessage === null) {
-            setRecognitionResult({ status: 'success', message: `Welcome, ${randomUser.name}!` });
-            setTimeout(() => setRecognitionResult(null), 4000);
+    try {
+      const enrolledUsersWithImages = enrolledUsers.map(user => ({
+        id: user.id,
+        name: user.name,
+        image: user.imageSrc
+      }));
+
+      const input: RecognizeFaceInput = {
+        webcamImage: imageSrc,
+        enrolledUsers: enrolledUsersWithImages
+      };
+
+      const result: RecognizeFaceOutput = await recognizeFace(input);
+
+      if (result.match && result.userId) {
+        const resultMessage = markAttendance(result.userId);
+        const user = enrolledUsers.find(u => u.id === result.userId);
+
+        if (resultMessage === null && user) {
+          setRecognitionResult({ status: 'success', message: `Welcome, ${user.name}!` });
         } else {
-            setRecognitionResult({ status: 'fail', message: resultMessage });
-            setTimeout(() => setRecognitionResult(null), 4000);
+          setRecognitionResult({ status: 'fail', message: resultMessage || 'An unknown error occurred.' });
         }
+      } else {
+        setRecognitionResult({ status: 'fail', message: result.reason || 'Recognition failed. Please try again.' });
+      }
 
-    }, 1500);
-  };
+    } catch (error) {
+      console.error("Facial recognition error:", error);
+      setRecognitionResult({ status: 'fail', message: 'An error occurred during recognition.' });
+      toast({ variant: 'destructive', title: 'AI Error', description: 'The facial recognition service failed.' });
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setRecognitionResult(null), 4000);
+    }
+  }, [enrolledUsers, isProcessing, markAttendance, toast]);
   
   if (!isReady) {
     return (
@@ -88,14 +118,20 @@ export default function HomePage() {
           <CardContent>
               <div className="relative overflow-hidden rounded-md">
                   <WebcamFeed ref={webcamRef} />
-                  {recognitionResult && (
+                  {(recognitionResult || isProcessing) && (
                       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-opacity duration-300">
-                          {recognitionResult.status === 'success' ? (
+                          {isProcessing && !recognitionResult && (
+                            <>
+                              <Loader2 className="h-24 w-24 animate-spin text-accent" />
+                              <p className="mt-4 text-xl font-semibold">Recognizing...</p>
+                            </>
+                          )}
+                          {recognitionResult?.status === 'success' ? (
                               <>
                                   <SuccessAnimation />
                                   <p className="mt-4 text-xl font-semibold">{recognitionResult.message}</p>
                               </>
-                          ) : (
+                          ) : recognitionResult?.status === 'fail' && (
                               <>
                                   <Frown className="h-24 w-24 text-destructive" />
                                   <p className="mt-4 text-xl font-semibold text-center max-w-xs">{recognitionResult.message}</p>
@@ -106,9 +142,9 @@ export default function HomePage() {
               </div>
           </CardContent>
           <CardFooter>
-                <Button type="button" onClick={handleAttendance} className="w-full" size="lg" disabled={!!recognitionResult}>
-                  <UserCheck className="mr-2 h-5 w-5" />
-                  Mark My Attendance
+                <Button type="button" onClick={handleAttendance} className="w-full" size="lg" disabled={isProcessing || !!recognitionResult}>
+                  {isProcessing ? <Loader2 className="animate-spin" /> : <UserCheck />}
+                  {isProcessing ? 'Processing...' : 'Mark My Attendance'}
               </Button>
           </CardFooter>
         </Card>
