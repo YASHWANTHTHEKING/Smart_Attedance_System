@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
-import { Users, UserCheck } from 'lucide-react';
+import { Users, UserCheck, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export default function ManualCheckinPage() {
-  const { enrolledUsers, attendanceLog, markAttendance, isReady } = useAppContext();
+  const { enrolledUsers, attendanceLog, markAttendance, clearAttendanceLog, isReady } = useAppContext();
   const { toast } = useToast();
 
   const today = new Date().toDateString();
@@ -39,6 +40,14 @@ export default function ManualCheckinPage() {
         description: resultMessage,
       });
     }
+  };
+
+  const handleClearLog = () => {
+    clearAttendanceLog();
+    toast({
+        title: 'Attendance Log Cleared',
+        description: 'The attendance log for today has been cleared.',
+    });
   };
 
   if (!isReady) {
@@ -73,8 +82,33 @@ export default function ManualCheckinPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Enrolled Users List</CardTitle>
-            <CardDescription>Click the button next to a user's name to check them in for today.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Enrolled Users List</CardTitle>
+                <CardDescription>Click the button next to a user's name to check them in for today.</CardDescription>
+              </div>
+               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" disabled={attendanceLog.length === 0}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Clear Today's Log
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently clear today's attendance log.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearLog} className="bg-destructive hover:bg-destructive/90">
+                      Yes, clear log
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[60vh] border rounded-md">
