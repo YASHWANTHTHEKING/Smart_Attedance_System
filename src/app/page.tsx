@@ -4,19 +4,26 @@ import { useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { WebcamFeed, WebcamFeedRef } from '@/components/webcam-feed';
-import { useAppContext, EnrolledUser } from '@/context/app-context';
+import { useAppContext } from '@/context/app-context';
 import { useToast } from '@/hooks/use-toast';
 import { SuccessAnimation } from '@/components/success-animation';
-import { UserCheck, Frown, Loader2 } from 'lucide-react';
+import { UserCheck, Frown, Loader2, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { recognizeFace } from '@/ai/flows/recognize-face-flow';
-import type { RecognizeFaceInput, RecognizeFaceOutput } from '@/ai/schemas/face-recognition-schemas';
+import { recognizeFaces } from '@/ai/flows/recognize-face-flow';
+import type { RecognizeFacesInput, RecognizeFacesOutput } from '@/ai/schemas/face-recognition-schemas';
+import { Badge } from '@/components/ui/badge';
+
+type RecognitionResult = {
+    status: 'success' | 'fail';
+    message: string;
+    recognizedUsers?: { name: string; status: string }[];
+}
 
 export default function HomePage() {
   const webcamRef = useRef<WebcamFeedRef>(null);
   const { enrolledUsers, markAttendance, isReady } = useAppContext();
   const { toast } = useToast();
-  const [recognitionResult, setRecognitionResult] = useState<{status: 'success' | 'fail', message: string} | null>(null);
+  const [recognitionResult, setRecognitionResult] = useState<RecognitionResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleAttendance = useCallback(async () => {
@@ -38,7 +45,7 @@ export default function HomePage() {
         return;
     }
     
-    toast({ title: 'Processing...', description: 'Recognizing face, this may take a moment.' });
+    toast({ title: 'Processing...', description: 'Recognizing faces, this may take a moment.' });
 
     try {
       const enrolledUsersWithImages = enrolledUsers.map(user => ({
@@ -47,24 +54,29 @@ export default function HomePage() {
         image: user.imageSrc
       }));
 
-      const input: RecognizeFaceInput = {
+      const input: RecognizeFacesInput = {
         webcamImage: imageSrc,
         enrolledUsers: enrolledUsersWithImages
       };
 
-      const result: RecognizeFaceOutput = await recognizeFace(input);
+      const result: RecognizeFacesOutput = await recognizeFaces(input);
 
-      if (result.match && result.userId) {
-        const resultMessage = markAttendance(result.userId);
-        const user = enrolledUsers.find(u => u.id === result.userId);
+      if (result.matches && result.matches.length > 0) {
+        const recognizedUsers = result.matches.map(match => {
+            const resultMessage = markAttendance(match.userId);
+            return {
+                name: match.name,
+                status: resultMessage === null ? "Checked In" : "Already Checked In"
+            };
+        });
+        setRecognitionResult({
+            status: 'success',
+            message: 'Attendance Marked!',
+            recognizedUsers
+        });
 
-        if (resultMessage === null && user) {
-          setRecognitionResult({ status: 'success', message: `Welcome, ${user.name}!` });
-        } else {
-          setRecognitionResult({ status: 'fail', message: resultMessage || 'An unknown error occurred.' });
-        }
       } else {
-        setRecognitionResult({ status: 'fail', message: result.reason || 'Recognition failed. Please try again.' });
+        setRecognitionResult({ status: 'fail', message: 'No recognized faces found. Please try again.' });
       }
 
     } catch (error) {
@@ -73,7 +85,7 @@ export default function HomePage() {
       toast({ variant: 'destructive', title: 'AI Error', description: 'The facial recognition service failed.' });
     } finally {
       setIsProcessing(false);
-      setTimeout(() => setRecognitionResult(null), 4000);
+      setTimeout(() => setRecognitionResult(null), 5000);
     }
   }, [enrolledUsers, isProcessing, markAttendance, toast]);
   
@@ -119,7 +131,7 @@ export default function HomePage() {
               <div className="relative overflow-hidden rounded-md">
                   <WebcamFeed ref={webcamRef} />
                   {(recognitionResult || isProcessing) && (
-                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-opacity duration-300">
+                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-opacity duration-300 p-4">
                           {isProcessing && !recognitionResult && (
                             <>
                               <Loader2 className="h-24 w-24 animate-spin text-accent" />
@@ -129,7 +141,15 @@ export default function HomePage() {
                           {recognitionResult?.status === 'success' ? (
                               <>
                                   <SuccessAnimation />
-                                  <p className="mt-4 text-xl font-semibold">{recognitionResult.message}</p>
+                                  <p className="mt-4 text-2xl font-semibold">{recognitionResult.message}</p>
+                                   <div className="mt-4 space-y-2 text-center">
+                                      {recognitionResult.recognizedUsers?.map(user => (
+                                          <div key={user.name} className="flex items-center gap-2 justify-center">
+                                              <span className="font-medium">{user.name}:</span>
+                                              <Badge variant={user.status === "Checked In" ? "secondary" : "outline"}>{user.status}</Badge>
+                                          </div>
+                                      ))}
+                                  </div>
                               </>
                           ) : recognitionResult?.status === 'fail' && (
                               <>
@@ -143,7 +163,7 @@ export default function HomePage() {
           </CardContent>
           <CardFooter>
                 <Button type="button" onClick={handleAttendance} className="w-full" size="lg" disabled={isProcessing || !!recognitionResult}>
-                  {isProcessing ? <Loader2 className="animate-spin" /> : <UserCheck />}
+                  {isProcessing ? <Loader2 className="animate-spin" /> : <Users />}
                   {isProcessing ? 'Processing...' : 'Mark My Attendance'}
               </Button>
           </CardFooter>

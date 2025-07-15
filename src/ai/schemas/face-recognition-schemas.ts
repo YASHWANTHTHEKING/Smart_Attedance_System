@@ -2,10 +2,10 @@
  * @fileOverview Schemas and types for the facial recognition AI agent.
  *
  * - EnrolledUserSchema - Zod schema for an enrolled user.
- * - RecognizeFaceInputSchema - Zod schema for the face recognition input.
- * - RecognizeFaceOutputSchema - Zod schema for the face recognition output.
- * - RecognizeFaceInput - The input type for the recognizeFace function.
- * - RecognizeFaceOutput - The return type for the recognizeFace function.
+ * - RecognizeFacesInputSchema - Zod schema for the face recognition input.
+ * - RecognizeFacesOutputSchema - Zod schema for the face recognition output.
+ * - RecognizeFacesInput - The input type for the recognizeFaces function.
+ * - RecognizeFacesOutput - The return type for the recognizeFaces function.
  */
 import { z } from 'zod';
 
@@ -17,7 +17,7 @@ export const EnrolledUserSchema = z.object({
 });
 
 // Define the input schema for the face recognition flow
-export const RecognizeFaceInputSchema = z.object({
+export const RecognizeFacesInputSchema = z.object({
   webcamImage: z
     .string()
     .describe(
@@ -25,12 +25,16 @@ export const RecognizeFaceInputSchema = z.object({
     ),
   enrolledUsers: z.array(EnrolledUserSchema).describe('A list of all enrolled users with their images.'),
 });
-export type RecognizeFaceInput = z.infer<typeof RecognizeFaceInputSchema>;
+export type RecognizeFacesInput = z.infer<typeof RecognizeFacesInputSchema>;
+
+
+const MatchedUserSchema = z.object({
+    userId: z.string().describe('The ID of the matched user.'),
+    name: z.string().describe('The name of the matched user.'),
+});
 
 // Define the output schema for the face recognition flow
-export const RecognizeFaceOutputSchema = z.object({
-    match: z.boolean().describe('Whether a match was found.'),
-    userId: z.string().optional().describe('The ID of the matched user if a match was found.'),
-    reason: z.string().optional().describe('The reason for no match, e.g. "No face detected" or "No matching user".'),
+export const RecognizeFacesOutputSchema = z.object({
+    matches: z.array(MatchedUserSchema).describe('An array of all recognized users found in the image.'),
 });
-export type RecognizeFaceOutput = z.infer<typeof RecognizeFaceOutputSchema>;
+export type RecognizeFacesOutput = z.infer<typeof RecognizeFacesOutputSchema>;
